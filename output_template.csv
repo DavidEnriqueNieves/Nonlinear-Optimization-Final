@@ -1,0 +1,15 @@
+,x_opt,f(x) coefficient,X_0,UB,LB
+C2G,,,,,
+C5G,,,,,
+D2G,,,,,
+D5G,,,,,
+I2G,,,,,
+I5G,,,,,
+P2G,,,,,
+P5G,,,,,
+,,,,,
+F-value,iterations,,,,
+,,,,,
+method,funcCount,stepsize,algorithm,firstorderopt,message
+,,,,,
+lambda,gradient,hessian,,,
