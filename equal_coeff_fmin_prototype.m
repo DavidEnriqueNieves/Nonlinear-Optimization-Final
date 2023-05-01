@@ -16,7 +16,7 @@ P5G = 3;
 % Use MATLAB's optimization functions to find optimal values
 
 x0 = [ D2G, D5G, I2G, I5G, P2G, P5G];
-lb = [ 40, 20,  0, 0,  0, 0];
+lb = [ 40, 20,  0.5, 0.5,  0, 0];
 ub = [ 200, 60, 1, 1, 8, 8];
 f_coeffs = [ 1, 1, 1, 1, 1, 1];
 % [x, fval, exitflag, output] = fmincon(@(x) -f(x(1), x(2), x(3), x(4), x(5), x(6)), x0, [], [], [], [], lb, ub, @(x) clip(x), options);
@@ -230,7 +230,7 @@ function s = average_speed(c, i,distance, freq)
   fin_distance = (distance - start_distance) / (end_distance - start_distance)
   
   % Make it negative exponential
-  s = end_speed + (1 -exp(-5) * (exp(5*fin_distance))) * (start_speed - end_speed)
+  s = ( end_speed + (1 -exp(-5) * (exp(5*fin_distance))) * (start_speed - end_speed) ) * i 
   %    speed = speed * (chunk_size / 4096) * (idle_time)
 end
 
@@ -283,16 +283,16 @@ function y = f( D2G, D5G, I2G, I5G,P2G, P5G, f_coeffs)
     transfer_speed = ( average_speed(C2G,I2G,D2G, 2.4) - min_2G_speed ) / (max_2G_speed - min_2G_speed) + ( average_speed(C5G,I5G,D5G,  5) - min_5G_speed ) / (max_5G_speed - min_5G_speed);
 
     
-    disp("I2G");
-    disp(I2G);
-    disp("I5G");
-    disp(I5G);
-    disp("P2G");
-    disp(P2G);
-    disp("P5G");
-    disp(P5G);
-    disp("max_power");
-    disp(max_power);
+    % disp("I2G");
+    % disp(I2G);
+    % disp("I5G");
+    % disp(I5G);
+    % disp("P2G");
+    % disp(P2G);
+    % disp("P5G");
+    % disp(P5G);
+    % disp("max_power");
+    % disp(max_power);
 
     power_savings = ( (I2G*P2G) / max_power ) + ( (I5G*P5G) / max_power );
 
@@ -315,11 +315,13 @@ function y = f( D2G, D5G, I2G, I5G,P2G, P5G, f_coeffs)
     disp(transfer_speed)
     disp("power_savings")
     disp(power_savings)
-y = power_savings_coeff * power_savings + ...
-  speed_coeff * transfer_speed + ...
+y = -1 * power_savings_coeff * power_savings + ...
+  speed_coeff * transfer_speed - ...
   path_loss_coeff * free_space_path_loss + ...
   bytes_lost_coeff * bytes_lost + ...
   number_of_phones_coeff * number_of_phones + ...
   total_distance_coeff * total_distance;
+  disp("y");
+  disp(y);
 end
 
