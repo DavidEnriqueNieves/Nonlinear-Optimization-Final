@@ -1,0 +1,34 @@
+let s:so_save = &g:so | let s:siso_save = &g:siso | setg so=0 siso=0 | setl so=-1 siso=-1
+argglobal
+if bufexists(fnamemodify("~/Documents/Semester10/MTH5335/Project/equal_coeff_fmin_prototype.m", ":p")) | buffer ~/Documents/Semester10/MTH5335/Project/equal_coeff_fmin_prototype.m | else | edit ~/Documents/Semester10/MTH5335/Project/equal_coeff_fmin_prototype.m | endif
+if &buftype ==# 'terminal'
+  silent file ~/Documents/Semester10/MTH5335/Project/equal_coeff_fmin_prototype.m
+endif
+setlocal fdm=manual
+setlocal fde=0
+setlocal fmr={{{,}}}
+setlocal fdi=#
+setlocal fdl=0
+setlocal fml=1
+setlocal fdn=20
+setlocal fen
+silent! normal! zE
+81,121fold
+123,125fold
+128,224fold
+226,265fold
+267,274fold
+277,279fold
+282,312fold
+316,402fold
+let &fdl = &fdl
+let s:l = 56 - ((18 * winheight(0) + 19) / 38)
+if s:l < 1 | let s:l = 1 | endif
+keepjumps exe s:l
+normal! zt
+keepjumps 56
+normal! 017|
+let &g:so = s:so_save | let &g:siso = s:siso_save
+set hlsearch
+doautoall SessionLoadPost
+" vim: set ft=vim :

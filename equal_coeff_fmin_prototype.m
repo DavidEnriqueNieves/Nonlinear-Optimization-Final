@@ -1,5 +1,6 @@
-% Constants
-% Define initial input values
+5% Constants
+% Define initial input values5
+    
 G_over_c = 10000 / 3;
 % between 512 and 4096
 % These are NOT optimizable
@@ -16,21 +17,41 @@ P5G = 3;
 % Use MATLAB's optimization functions to find optimal values
 
 x0 = [ D2G, D5G, I2G, I5G, P2G, P5G];
-lb = [ 40, 20,  0.5, 0.5,  0, 0];
+lb = [ 40, 20,  0.5, 0.5,  1, 1];
 ub = [ 200, 60, 1, 1, 8, 8];
-f_coeffs = [ 1, 1, 1, 1, 1, 1];
-% [x, fval, exitflag, output] = fmincon(@(x) -f(x(1), x(2), x(3), x(4), x(5), x(6)), x0, [], [], [], [], lb, ub, @(x) clip(x), options);
 
-% [x, fval, exitflag, output] = fmincon(@(x) -f(x(1), x(2), x(3), x(4), x(5), x(6)), x0, [], [], [], [], lb, ub, @(x) identity(x) , options);
+% f_coeffs = [ 1, 1, 1, 1, 1, 1];
 
-% THIS WORKS, AT LEAST
-% [x, fval, exitflag, output] = fmincon(@(x) -f(x(1), x(2), x(3), x(4), x(5), x(6)), x0, [], [], [], [], lb, ub);
+    % power_savings_coeff 
+    % speed_coeff 
+    % path_loss_coeff 
+    % bytes_lost_coeff 
+    % number_of_phones_coeff 
+    % total_distance_coeff 
+% control test (everything except phones and distances)
+% f_coeffs = [ 0, 0, 0, 0, 1, 1];
+% suffix = "_control_test";
 
-%options = optimoptions('fmincon', 'MaxIterations', 1000);
-% options = optimoptions('fmincon', 'MaxIterations', 1000, 'Algorithm' , 'sqp');
-% options = optimoptions('fmincon', 'MaxIterations', 1000, 'Algorithm' , 'interior-point');
+f_coeffs = [1,0.5,1,0,1,1];
+
+suffix = "_control_test";
+
+
+% ##############################
+%  	MAIN	
+% ##############################
+
+
 options = optimoptions('fmincon', 'MaxIterations', 5000, 'Algorithm' , 'active-set', "Display", "iter");
 [x, fval, exitflag, output, lambda, grad, hessian] = fmincon(@(x) -f(x(1), x(2), x(3), x(4), x(5), x(6), f_coeffs), x0, [], [], [], [], lb, ub, @(x) nothing(x), options);
+
+% ##############################
+%  	FORMATTING & RESULTS	
+% ##############################
+
+coeff_str = strcat("[" , num2str(f_coeffs(1)), ",", num2str(f_coeffs(2)), ",", num2str(f_coeffs(3)), ",", num2str(f_coeffs(4)), ",", num2str(f_coeffs(5)), ",", num2str(f_coeffs(6)), "]");
+
+file_name = strcat("~/Documents/Semester10/MTH5335/Project/runs/results(algorithm="+ options.Algorithm+ "+iterations="+ options.MaxIterations+  "f=" + fval+ ")" +coeff_str + suffix +   ".csv" );
 
 % Display results
 fprintf('Optimal Values:\n');
@@ -41,14 +62,80 @@ fprintf('I5G: %.2f\n', x(4));
 fprintf('P2G: %.2f\n', x(5));
 fprintf('P5G: %.2f\n', x(6));
 
-suffix = "";
-file_name = strcat("~/Documents/Semester10/MTH5335/Project/results(algorithm="+ options.Algorithm+ "+iterations="+ options.MaxIterations+  "f=" + fval+ ")" + suffix + ".csv" );
-
-
 write_results_to_csv(file_name, x, fval, x0, ub, lb, exitflag, output, lambda, grad, hessian, C2G, C5G, f_coeffs);
+%
+%
+% ##############################
+%  	PLOTTING
+% ##############################
+
+% Define the grid of values for P2G, P5G, I2G, and I5G
+
+metric1 = "D2G";
+metric2 = "P2G";
+
+% DO THIS IF YOU WANT TO SHOW INITIAL VALUE CHANGES
+% plot_metric_vs_metric(metric1, metric2, x0, lb, ub, f_coeffs, suffix, coeff_str);
+plot_metric_vs_metric(metric1, metric2, x, lb, ub, f_coeffs, suffix, coeff_str);
+
+
+function plot_metric_vs_metric( metric1 , metric2 ,  x0, lb, ub, f_coeffs, suffix, coeff_str)
+	metric_names = ["D2G", "D5G", "I2G", "I5G", "P2G", "P5G"];
+	metric_labels = ["D_{2.4G} (Distance of 2.4GHz phones)", "D_{5G} (Distance of 5GHz phones)", "I_{2.4G} (Idle time of 2.4GHz phones) ", "I_{5G} (Idle time of 5GHz phones) ", "P_{2.4G} (Number of 2.4GHz phones)", "P_{5G} (Number of 5GHz phones)" ];
+
+	metric_indices = [1, 2, 3, 4, 5, 6];
 	
+	metric_name_2_index = dictionary(metric_names, metric_indices);
+	metric_name_2_label = dictionary(metric_names, metric_labels);
+	
+	n = 100;
+	
+	metric1_index = metric_name_2_index(metric1);
+	metric2_index = metric_name_2_index(metric2);
+	
+	metric_1_values = generate_metric_values(metric1_index, lb, ub, n);
+	metric_2_values = generate_metric_values(metric2_index, lb, ub, n);
+	
+	
+	[metric1_grid, metric2_grid] = ndgrid(metric_1_values, metric_2_values);
+	
+	% Pre-allocate an array to store the objective function values
+	f_values = zeros(size(metric1_grid));
+	
+	% create arguments to pass into f function regardless of which metric was chosen
+	for i = 1:numel(metric1_grid)
+	    x = x0;
+	    x(metric1_index) = metric1_grid(i);
+	    x(metric2_index) = metric2_grid(i);
+ 	    %                D2G, D5G, I2G, I5G,P2G, P5G, f_coeffs
+	    f_values(i) = f(x(1), x(2), x(3), x(4), x(5), x(6), f_coeffs);
+	end
+	
+	% Plot the objective function values as a function of P2G and P5G
+	surf(metric1_grid, metric2_grid, f_values);
+	% surf(metric1_grid(:,:,1,1), metric2_grid(:,:,1,1), f_values(:,:,1,1));
+	xlabel(metric_name_2_label(metric1));
+	ylabel(metric_name_2_label(metric2));
+	zlabel('Objective function value');
+
+	title_str = strcat('Objective function value vs ' + metric1 + ' and ' + metric2' );
+	title_str2 = strcat(' with coefficients ' + coeff_str );
+	title({ title_str, title_str2 }	);
+
+	filename = strcat("~/Documents/Semester10/MTH5335/Project/figures/plot_" + metric1 + "_vs_" + metric2 + "-" + coeff_str + suffix + ".fig");
+	savefig( filename );
+
+	filename = strcat("~/Documents/Semester10/MTH5335/Project/figures/plot_" + metric1 + "_vs_" + metric2 + "-" + coeff_str + suffix + ".png");
+	exportgraphics(gcf, filename);
+	% Define function to generate values for a given metric
+end
+
+function metric_values = generate_metric_values(metric_index, lb, ub, n)
+	metric_values = linspace(lb(metric_index), ub(metric_index), n);
+end
+
 	% Define function to write results to a CSV file
-	function write_results_to_csv(file_name, x_opt, fval, x0, ub, lb, exitflag, output, lambda, grad, hessian, C2G, C5G, f_coeffs)
+function write_results_to_csv(file_name, x_opt, fval, x0, ub, lb, exitflag, output, lambda, grad, hessian, C2G, C5G, f_coeffs)
 	
 	% Create cell array to store results
 	results = cell(21, 8);
@@ -62,7 +149,7 @@ write_results_to_csv(file_name, x, fval, x0, ub, lb, exitflag, output, lambda, g
 	results{6, 1} = "P2G";
 	results{7, 1} = "P5G";
 	
-	results{1, 2} = 'x'
+	results{1, 2} = 'x';
 	results{2, 2} = x_opt(1);
 	results{3, 2} = x_opt(2);
 	results{4, 2} = x_opt(3);
@@ -70,7 +157,7 @@ write_results_to_csv(file_name, x, fval, x0, ub, lb, exitflag, output, lambda, g
 	results{6, 2} = x_opt(5);
 	results{7, 2} = x_opt(6);
 	
-	results{1, 3} = 'x_0'
+	results{1, 3} = 'x_0';
 	results{2, 3} = x0(1);
 	results{3, 3} = x0(2);
 	results{4, 3} = x0(3);
@@ -78,7 +165,7 @@ write_results_to_csv(file_name, x, fval, x0, ub, lb, exitflag, output, lambda, g
 	results{6, 3} = x0(5);
 	results{7, 3} = x0(6);
 	
-	results{1, 4} = 'UB'
+	results{1, 4} = 'UB';
 	results{2, 4} = ub(1);
 	results{3, 4} = ub(2);
 	results{4, 4} = ub(3);
@@ -86,7 +173,7 @@ write_results_to_csv(file_name, x, fval, x0, ub, lb, exitflag, output, lambda, g
 	results{6, 4} = ub(5);
 	results{7, 4} = ub(6);
 	
-	results{1, 5} = 'LB'
+	results{1, 5} = 'LB';
 	results{2, 5} = lb(1);
 	results{3, 5} = lb(2);
 	results{4, 5} = lb(3);
@@ -132,16 +219,16 @@ write_results_to_csv(file_name, x, fval, x0, ub, lb, exitflag, output, lambda, g
 	results{19, 1} = grad(5);
 	results{20, 1} = grad(6);
 	
-	results{1, 5} = "$f(x)$ Coeffs";
-	results{2, 5} = f_coeffs(1);
-	results{3, 5} = f_coeffs(2);
-	results{4, 5} = f_coeffs(3);
-	results{5, 5} = f_coeffs(4);
-	results{6, 5} = f_coeffs(5);
-	results{7, 5} = f_coeffs(6);
+	results{1, 6} = "$f(x)$ Coeffs";
+	results{2, 6} = f_coeffs(1);
+	results{3, 6} = f_coeffs(2);
+	results{4, 6} = f_coeffs(3);
+	results{5, 6} = f_coeffs(4);
+	results{6, 6} = f_coeffs(5);
+	results{7, 6} = f_coeffs(6);
 	% Write results to CSV file
 	% writematrix( results,file_name);
-	cell2csv(file_name,results)
+	cell2csv(file_name,results);
 	% csvwrite(file_name, results);
 	
 end
@@ -213,24 +300,24 @@ function s = average_speed(c, i,distance, freq)
   % The speed increases linearly with respect to the chunk size and the idle time.
   
   if freq == 2.4
-      start_speed = 250
-      end_speed = 50
-      start_distance = 40
-      end_distance = 200
+      start_speed = 250;
+      end_speed = 50;
+      start_distance = 40;
+      end_distance = 200;
   elseif  freq == 5
-      start_speed = 1500
-      end_speed = 250
-      start_distance = 20
-      end_distance = 60
+      start_speed = 1500;
+      end_speed = 250;
+      start_distance = 20;
+      end_distance = 60;
   else
 	  error("Frequency must be 2.4 or 5")
   end
   
   % Scale the distance to be between 0 and 1
-  fin_distance = (distance - start_distance) / (end_distance - start_distance)
+  fin_distance = (distance - start_distance) / (end_distance - start_distance);
   
   % Make it negative exponential
-  s = ( end_speed + (1 -exp(-5) * (exp(5*fin_distance))) * (start_speed - end_speed) ) * i 
+  s = ( end_speed + (1 -exp(-5) * (exp(5*fin_distance))) * (start_speed - end_speed) ) * i ;
   %    speed = speed * (chunk_size / 4096) * (idle_time)
 end
 
@@ -249,29 +336,28 @@ function y = f( D2G, D5G, I2G, I5G,P2G, P5G, f_coeffs)
     total_distance = D2G*P2G / (200 * 8) + D5G*P5G / (60 * 8);
     number_of_phones = P2G*P5G / (8 * 8);
     
-    disp("D2G");
-    disp(D2G);
-    disp("D5G");
-    disp(D5G);
+    % disp("D2G");
+    % disp(D2G);
+    % disp("D5G");
+    % disp(D5G);
 
-    disp(" max_5G_path_loss - min_5G_path_loss ");
-    disp(max_5G_path_loss - min_5G_path_loss);
+    % disp(" max_5G_path_loss - min_5G_path_loss ");
+    % disp(max_5G_path_loss - min_5G_path_loss);
 
-    disp(" max_2G_path_loss - min_2G_path_loss ");
-    disp(max_2G_path_loss - min_2G_path_loss);
+    % disp(" max_2G_path_loss - min_2G_path_loss ");
+    % disp(max_2G_path_loss - min_2G_path_loss);
 
-    disp(" log(4*pi*2.4*G_over_c*D2G) - min_2G_path_loss ");
-    disp(log(4*pi*2.4*G_over_c*D2G) - min_2G_path_loss);
+    % disp(" log(4*pi*2.4*G_over_c*D2G) - min_2G_path_loss ");
+    % disp(log(4*pi*2.4*G_over_c*D2G) - min_2G_path_loss);
 
-    disp(" log(4*pi*5*G_over_c*D5G) - min_5G_path_loss ");
-    disp(log(4*pi*5*G_over_c*D5G) - min_5G_path_loss);
+    % disp(" log(4*pi*5*G_over_c*D5G) - min_5G_path_loss ");
+    % disp(log(4*pi*5*G_over_c*D5G) - min_5G_path_loss);
 
-    free_space_path_loss =  (  log10(4*pi*2.4*G_over_c*D2G) - min_2G_path_loss ) ./ ( max_2G_path_loss - min_2G_path_loss )  
-    		         +  (  log10(4*pi*5*G_over_c*D5G) - min_5G_path_loss ) ./ ( max_5G_path_loss - min_5G_path_loss );
+    free_space_path_loss =  (  log10(4*pi*2.4*G_over_c*D2G) - min_2G_path_loss ) ./ ( max_2G_path_loss - min_2G_path_loss ) +  (  log10(4*pi*5*G_over_c*D5G) - min_5G_path_loss ) ./ ( max_5G_path_loss - min_5G_path_loss );
 
 
     % bytes_lost = C2G * packet_loss(D2G) + C5G * packet_loss(D5G);
-    bytes_lost = 0
+    bytes_lost = 0;
 
     max_2G_speed = 250;
     max_5G_speed = 1500;
@@ -303,25 +389,25 @@ function y = f( D2G, D5G, I2G, I5G,P2G, P5G, f_coeffs)
     number_of_phones_coeff = f_coeffs(5);
     total_distance_coeff = f_coeffs(6);
 
-    disp("total_distance")
-    disp(total_distance)
-    disp("number_of_phones")
-    disp(number_of_phones)
-    disp("free_space_path_loss")
-    disp(free_space_path_loss)
-    disp("bytes_lost")
-    disp(bytes_lost)
-    disp("transfer_speed")
-    disp(transfer_speed)
-    disp("power_savings")
-    disp(power_savings)
+    % disp("total_distance")
+    % disp(total_distance)
+    % disp("number_of_phones")
+    % disp(number_of_phones)
+    % disp("free_space_path_loss")
+    % disp(free_space_path_loss)
+    % disp("bytes_lost")
+    % disp(bytes_lost)
+    % disp("transfer_speed")
+    % disp(transfer_speed)
+    % disp("power_savings")
+    % disp(power_savings)
 y = -1 * power_savings_coeff * power_savings + ...
   speed_coeff * transfer_speed - ...
   path_loss_coeff * free_space_path_loss + ...
   bytes_lost_coeff * bytes_lost + ...
   number_of_phones_coeff * number_of_phones + ...
   total_distance_coeff * total_distance;
-  disp("y");
-  disp(y);
+  % disp("y");
+  % disp(y);
 end
 
