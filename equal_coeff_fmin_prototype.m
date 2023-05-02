@@ -33,8 +33,19 @@ ub = [ 200, 60, 1, 1, 8, 8];
 % suffix = "_control_test";
 
 f_coeffs = [1,0.5,1,0,1,1];
+f_coeffs = [1,1,1,1,1,1];
+f_coeffs = [1,0,0,0,0,0];
+f_coeffs = [0,1,0,0,0,0];
+f_coeffs = [0,0,1,0,0,0];
+f_coeffs = [0,0,0,1,0,0];
+f_coeffs = [0,0,0,0,1,0];
+f_coeffs = [0,0,0,0,0,1];
+f_coeffs = [0.1,0.1,0.1,0.1,0.1,1];
+f_coeffs = [0.1,1,0.1,0.1,0.1,0.1];
+f_coeffs = [0.1,0.1,0.1,0.1,1,0.1];
+f_coeffs = [0.1,0.5,0.1,0.5,0.1,0.5];
 
-suffix = "_control_test";
+suffix = "_numphonesfix";
 
 
 % ##############################
@@ -51,7 +62,7 @@ options = optimoptions('fmincon', 'MaxIterations', 5000, 'Algorithm' , 'active-s
 
 coeff_str = strcat("[" , num2str(f_coeffs(1)), ",", num2str(f_coeffs(2)), ",", num2str(f_coeffs(3)), ",", num2str(f_coeffs(4)), ",", num2str(f_coeffs(5)), ",", num2str(f_coeffs(6)), "]");
 
-file_name = strcat("~/Documents/Semester10/MTH5335/Project/runs/results(algorithm="+ options.Algorithm+ "+iterations="+ options.MaxIterations+  "f=" + fval+ ")" +coeff_str + suffix +   ".csv" );
+file_name = strcat("~/Documents/Semester10/MTH5335/Project/runs_numphonesfix/results(algorithm="+ options.Algorithm+ "+iterations="+ options.MaxIterations+  "f=" + fval+ ")" +coeff_str + suffix +   ".csv" );
 
 % Display results
 fprintf('Optimal Values:\n');
@@ -180,7 +191,6 @@ function write_results_to_csv(file_name, x_opt, fval, x0, ub, lb, exitflag, outp
 	results{5, 5} = lb(4);
 	results{6, 5} = lb(5);
 	results{7, 5} = lb(6);
-	
 	
 	results{9, 1} = 'F-value';
 	results{10, 1} = fval;
@@ -334,7 +344,7 @@ function y = f( D2G, D5G, I2G, I5G,P2G, P5G, f_coeffs)
     C2G = 1024;
     C5G = 2048;
     total_distance = D2G*P2G / (200 * 8) + D5G*P5G / (60 * 8);
-    number_of_phones = P2G*P5G / (8 * 8);
+    number_of_phones = (P2G / 8) + (P5G / 8);
     
     % disp("D2G");
     % disp(D2G);
@@ -405,7 +415,7 @@ y = -1 * power_savings_coeff * power_savings + ...
   speed_coeff * transfer_speed - ...
   path_loss_coeff * free_space_path_loss + ...
   bytes_lost_coeff * bytes_lost + ...
-  number_of_phones_coeff * number_of_phones + ...
+  -1 * number_of_phones_coeff * number_of_phones + ...
   total_distance_coeff * total_distance;
   % disp("y");
   % disp(y);
