@@ -44,6 +44,9 @@ f_coeffs = [0.1,0.1,0.1,0.1,0.1,1];
 f_coeffs = [0.1,1,0.1,0.1,0.1,0.1];
 f_coeffs = [0.1,0.1,0.1,0.1,1,0.1];
 f_coeffs = [0.1,0.5,0.1,0.5,0.1,0.5];
+f_coeffs  = [0.1, 0.5, 0.1, 0.1, 1, 1 ];
+f_coeffs  = [0.1, 0.5, 0.1, 0.1, 1, 1 ];
+f_coeffs  = [0.1, 0.5, 0.1, 0.1, 0.1, 1 ]; % steven likes this one...
 
 suffix = "_numphonesfix";
 
@@ -83,7 +86,7 @@ write_results_to_csv(file_name, x, fval, x0, ub, lb, exitflag, output, lambda, g
 % Define the grid of values for P2G, P5G, I2G, and I5G
 
 metric1 = "D2G";
-metric2 = "P2G";
+metric2 = "D5G";
 
 % DO THIS IF YOU WANT TO SHOW INITIAL VALUE CHANGES
 % plot_metric_vs_metric(metric1, metric2, x0, lb, ub, f_coeffs, suffix, coeff_str);
